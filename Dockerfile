@@ -13,7 +13,11 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
          build-essential \
          git \
          python3-opencv \
-         ca-certificates && \
+         ca-certificates \
+		 libavcodec-dev \
+		 libavformat-dev \
+		 libavutil-dev \
+		 libswscale-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory for all the subsequent Dockerfile instructions.
