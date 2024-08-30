@@ -31,5 +31,6 @@ ENV PATH=/usr/local/cuda/bin:$PATH
 RUN cd GroundingDINO/ && python -m pip install .
 
 COPY docker_test.py docker_test.py
+COPY /demo/inference_on_a_video.py inference_on_a_video.py
 
 CMD [ "python", "docker_test.py" ]
