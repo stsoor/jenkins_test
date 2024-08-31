@@ -17,7 +17,10 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
 		 libavcodec-dev \
 		 libavformat-dev \
 		 libavutil-dev \
-		 libswscale-dev && \
+		 libswscale-dev \
+		 ffmpeg \
+		 x264 \
+		 libx264-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory for all the subsequent Dockerfile instructions.
