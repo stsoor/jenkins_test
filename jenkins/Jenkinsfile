@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+	
+	environment {
+        IMAGE_NAME = "gdji"
+    }
+	
+    parameters {
+        string(name: 'TARGET_OBJECT', defaultValue: 'person', description: 'Object to detect')
+        string(name: 'BOX_THRESHOLD', defaultValue: '0.4', description: 'Box threshold value')
+        string(name: 'TEXT_THRESHOLD', defaultValue: '0.25', description: 'Text threshold value')
+    }
+    
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'master', url: 'https://github.com/stsoor/jenkins_test.git'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                        docker.build(env.IMAGE_NAME)
+                }
+            }
+        }
+		
+        stage('Copy File to Shared Dir') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p /var/jenkins_home/bence
+                    """
+                    sh """
+                        cp /var/jenkins_home/test.mp4 /var/jenkins_home/bence/test.mp4
+                    """
+                }
+            }
+        }
+		
+        stage('Run Docker Image and Clean Up') {            
+            steps {
+                script {
+                    def containerId = sh(script: """
+                        docker run -d \
+                        --gpus all \
+                        -v /var/jenkins_home/bence:/data \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        ${IMAGE_NAME} \
+                        python /opt/program/inference_on_a_video.py \
+                        -i /data/test.mp4 \
+                        -o /data/out/ \
+                        -t "${params.TARGET_OBJECT}" \
+                        -bt "${params.BOX_THRESHOLD}" \
+                        -tt "${params.TEXT_THRESHOLD}"
+                    """, returnStdout: true).trim()
+        
+                    echo "Container started with ID: ${containerId}"
+                    
+                    // Wait for the container to finish and clean up
+                    sh "docker wait ${containerId}"
+                    echo "Container ${containerId} has finished running."
+					
+					
+                    def outVideoPath = "/var/jenkins_home/bence/out/annotated_video.avi"
+                    def outAnnotationsPath = "/var/jenkins_home/bence/out/annotations.txt"
+                    sh """
+                        cp ${outVideoPath} /var/jenkins_home
+                    """
+                    sh """
+                        cp ${outAnnotationsPath} /var/jenkins_home
+                    """
+                    echo "Files copied to workspace."
+                }
+            }
+        }
+		
+
+        stage('Archive Artifacts')
+		{
+            steps
+			{
+                archiveArtifacts artifacts: '/var/jenkins_home/annotated_video.avi,/var/jenkins_home/annotations.txt', allowEmptyArchive: true
+            }
+        }
+
+    }
+}
